@@ -1,17 +1,18 @@
 import sys
-from operator import contains
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from starlette.requests import Request
 
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import JSONResponse
 
+from src.banking.accounting import deposit, withdraw
 from src.core.core import get_jwt_key
-from src.banking.exceptions import no_acct
+from src.banking.exceptions import no_acct, insufficient_funds
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import jwt
-import datetime
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from argon2 import PasswordHasher
@@ -35,18 +36,19 @@ def generate_token(account_number, pin):
 
     key = get_jwt_key()
     print(key)
+    ph_tz = timezone(timedelta(hours=8))
 
     return jwt.encode(
         {
             "account_number": account_number,
-            "iat": datetime.datetime.now()
+            "iat": datetime.now(ph_tz)
         },
         key, algorithm="HS256"
     )
 
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        public_paths = ("/login", "/docs", "/openapi.json")
+        public_paths = ("/login/", "/docs", "/openapi.json", "/redoc")
 
         if request.url.path.endswith(public_paths):
             return await call_next(request)
@@ -55,7 +57,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
             jwt_token = request.headers.get("Authorization")
             if not jwt_token or not jwt_token.startswith("Bearer "):
-                raise HTTPException(status_code=403, detail="Missing JWT Token")
+                return JSONResponse(status_code=401, content={"message": "Missing JWT Token"})
             else:
                 jwt_token = jwt_token.split(" ")[1]
                 payload = jwt.decode(jwt_token, jwt_key, algorithms=["HS256"])
@@ -65,7 +67,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 if bool(payload):
                     return await call_next(request)
                 else:
-                    raise HTTPException(status_code=403, detail="Incorrect JWT Token")
+                    return JSONResponse(status_code=403, content={"message": "Incorrect JWT Token"})
 
 @app.post("/{account_number}/login/")
 def login(pin: Login, account_number: str):
@@ -77,10 +79,44 @@ def login(pin: Login, account_number: str):
         raise HTTPException(status_code=404, detail="Account not found")
     return {"token": token}
 
-app.get("/test")
-def test():
+@app.post("/deposit")
+def Deposit(amount: int, request: Request, pin: Login):
+    pin = str(pin.pin)
+    account_number = request.state.account_number
+    try:
+        new_bal = deposit(amount, account_number, pin)
+    except incorrect_pin:
+        raise HTTPException(status_code=403, detail="Incorrect PIN")
+    except no_acct:
+        raise HTTPException(status_code=404, detail="Account not found")
+
     return {
-        "message": "test"
+        "status": "ok",
+        "new_balance": new_bal
+    }
+
+@app.post("/withdraw")
+def Withdraw(amount: int, request: Request, pin: Login):
+    pin = str(pin.pin)
+    account_number = request.state.account_number
+    try:
+        new_bal = withdraw(amount, account_number, pin)
+    except incorrect_pin:
+        raise HTTPException(status_code=403, detail="Incorrect PIN")
+    except insufficient_funds:
+        raise HTTPException(status_code=409, detail="Insufficient funds")
+    except no_acct:
+        raise HTTPException(status_code=404, detail="Account not found")
+
+    return {
+        "status": "ok",
+        "new_balance": new_bal
+    }
+
+@app.get("/health")
+def health():
+    return {
+        "status": "ok"
     }
 
 app.add_middleware(AuthMiddleware)

@@ -9,12 +9,12 @@
 
 import getpass
 import time
-from banking import open_account, change_info
-from banking.accounting import withdraw, deposit
-from banking.database import store_data, get_data
-from banking.exceptions import no_acct
-from core import Clear, Menu, ChangeInfoMenu, InfoMenu
-from crypto.exceptions import incorrect_pin
+from src.banking import open_account, change_info
+from src.banking.accounting import withdraw, deposit
+from src.banking.database import store_data, get_data
+from src.banking.exceptions import no_acct
+from src.core import Clear, Menu, ChangeInfoMenu, InfoMenu
+from src.crypto.exceptions import incorrect_pin
 
 finished = False
 
