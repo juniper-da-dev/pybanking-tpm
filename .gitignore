@@ -1,3 +1,6 @@
+# Local data
+accounts
+
 # Byte-compiled / cache
 __pycache__/
 *.py[cod]
