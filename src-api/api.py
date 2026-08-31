@@ -35,7 +35,6 @@ def generate_token(account_number, pin):
         raise incorrect_pin
 
     key = get_jwt_key()
-    print(key)
     ph_tz = timezone(timedelta(hours=8))
 
     return jwt.encode(
