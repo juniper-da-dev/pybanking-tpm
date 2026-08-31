@@ -1,0 +1,76 @@
+import base64
+import hashlib
+import os
+from typing import Optional
+
+from argon2 import PasswordHasher
+from cryptography.exceptions import InvalidTag
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from crypto.exceptions import incorrect_pin, missing_pin
+from core import get_master_key
+
+ph = PasswordHasher()
+
+def encrypt(data, pin, nopin=False):
+    if not nopin:
+        master_key = get_master_key()
+        hpin = hashlib.sha256(pin.encode()).hexdigest()
+        ckey = master_key + hpin.encode()
+        dkey = hashlib.sha256(ckey).digest()
+
+        nonce = os.urandom(12)
+
+        cipher = AESGCM(dkey)
+        ciphertext = cipher.encrypt(nonce, str(data).encode(), None)
+
+        return base64.b64encode(nonce + ciphertext).decode()
+    else:
+        master_key = get_master_key()
+
+        nonce = os.urandom(12)
+
+        cipher = AESGCM(master_key)
+        ciphertext = cipher.encrypt(nonce, str(data).encode(), None)
+
+        return "NP" + base64.b64encode(nonce + ciphertext).decode()
+
+
+def decrypt(data, pin: Optional[str] = None):
+    if data[:2] == "NP":
+        master_key = get_master_key()
+
+        data = data[2:]
+        data = base64.b64decode(data)
+        nonce = data[:12]
+        encrypted_data = data[12:]
+
+        try:
+            cipher = AESGCM(master_key)
+            unencrypted_text = cipher.decrypt(nonce, encrypted_data, None).decode()
+        except InvalidTag:
+            raise incorrect_pin
+
+        return str(unencrypted_text)
+    elif data[:2] != "NP" and not pin:
+        raise missing_pin
+    else:
+        master_key = get_master_key()
+        hpin = hashlib.sha256(pin.encode()).hexdigest()
+
+        ckey = master_key + hpin.encode()
+        dkey = hashlib.sha256(ckey).digest()
+
+        data = base64.b64decode(data)
+        nonce = data[:12]
+        encrypted_data = data[12:]
+
+        try:
+            cipher = AESGCM(dkey)
+            unencrypted_text = cipher.decrypt(nonce, encrypted_data, None).decode()
+        except InvalidTag:
+            raise incorrect_pin
+
+        return str(unencrypted_text)
+
+
+
