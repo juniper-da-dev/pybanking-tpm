@@ -1,1 +1,1 @@
-from banking.banking import open_account, change_info
+from .banking import open_account, change_info, verify_pin
