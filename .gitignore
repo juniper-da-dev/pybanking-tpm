@@ -1,5 +1,5 @@
 # Local data
-accounts
+/accounts
 
 # Byte-compiled / cache
 __pycache__/

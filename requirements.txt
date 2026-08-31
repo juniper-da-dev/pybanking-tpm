@@ -1,0 +1,8 @@
+argon2-cffi
+keyring
+cryptography
+python-dotenv
+fastapi[standard]
+uvicorn
+pytest
+pydantic
