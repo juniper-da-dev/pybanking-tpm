@@ -11,9 +11,9 @@ import getpass
 import time
 from banking import open_account, change_info
 from banking.accounting import withdraw, deposit
-from banking.database import store_data
+from banking.database import store_data, get_data
 from banking.exceptions import no_acct
-from core import Clear, Menu, ChangeInfoMenu
+from core import Clear, Menu, ChangeInfoMenu, InfoMenu
 from crypto.exceptions import incorrect_pin
 
 finished = False
@@ -143,7 +143,59 @@ while not finished:
             break
 
     elif selection == 5:  # Grab Account Info
-        pass
+        selection = int(InfoMenu())
+        if selection == 1:
+            print("\nWhats your account number?")
+            account = str(input("> "))
+
+            print("\nWhat is your pin number?")
+            pin = str(getpass.getpass("> "))
+
+            try:
+                balance = get_data(account, "balance", pin)
+            except incorrect_pin:
+                print("\nYour pin number is incorrect, please try again.")
+                time.sleep(3)
+                finished = True
+                break
+            except no_acct:
+                print("\nSorry, your account number is invalid, please try again.")
+                time.sleep(3)
+                finished = True
+                break
+
+            print(f"\nYour balance is {balance}.")
+            finished = True
+            break
+
+        if selection == 2:
+            print("\nWhats your account number?")
+            account = str(input("> "))
+
+            print("\nWhat is your pin number?")
+            pin = str(getpass.getpass("> "))
+
+            try:
+                name = get_data(account, "name", pin)
+            except incorrect_pin:
+                print("\nYour pin number is incorrect, please try again.")
+                time.sleep(3)
+                finished = True
+                break
+            except no_acct:
+                print("\nSorry, your account number is invalid, please try again.")
+                time.sleep(3)
+                finished = True
+                break
+
+            print(f"\nYour name is {name}.")
+            finished = True
+            break
+
+        if selection == 3:
+            Clear()
+            finished = True
+            break
 
     elif selection == 6:  # Exit
         Clear()
