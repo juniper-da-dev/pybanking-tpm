@@ -1,5 +1,6 @@
 import base64
 import os
+import secrets
 
 import keyring
 
@@ -12,6 +13,12 @@ def MasterKey_INIT():
 
     return key
 
+def MasterKeyJWT_INIT():
+    jwt_key = secrets.token_urlsafe(32)
+    keyring.set_password("Banking", "jwt_key", jwt_key)
+
+    return jwt_key
+
 
 def get_master_key():
     master = keyring.get_password("Banking", "master_key")
@@ -21,9 +28,21 @@ def get_master_key():
 
     return master_key_bytes
 
+def get_jwt_key():
+    jwt = keyring.get_password("Banking", "jwt_key")
+    assert jwt is not None
+
+    return jwt
+
 
 if keyring.get_password("Banking", "master_key"):
     pass
 else:
     MasterKey_INIT()
     print("Master Key initialized")
+
+if keyring.get_password("Banking", "jwt_key"):
+    pass
+else:
+    MasterKeyJWT_INIT()
+    print("JWT Key initialized")

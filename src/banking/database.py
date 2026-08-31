@@ -1,10 +1,13 @@
 import shelve
+from pathlib import Path
 from typing import Optional
-from crypto import encrypt, decrypt
-from crypto.exceptions import incorrect_pin
+from ..crypto import encrypt, decrypt
+from ..crypto.exceptions import incorrect_pin
+
+accounts = str(Path(__file__).parent.parent.parent / "accounts")
 
 def store_data(account, name, key, pin: Optional[str] = None, nopin=False):
-    with shelve.open("../../accounts", writeback=True) as db:
+    with shelve.open(accounts, writeback=True) as db:
         if not nopin:
             key = encrypt(key, pin)
             if account not in db:
@@ -18,9 +21,9 @@ def store_data(account, name, key, pin: Optional[str] = None, nopin=False):
 
 
 def get_data(account, name, pin: Optional[str] = None):
-    from banking.exceptions import no_key, no_acct
+    from ..banking.exceptions import no_key, no_acct
     if pin:
-        with shelve.open("../../accounts", writeback=True) as db:
+        with shelve.open(accounts, writeback=True) as db:
             if account not in db:
                 raise no_acct
             elif name not in db[account]:
@@ -34,7 +37,7 @@ def get_data(account, name, pin: Optional[str] = None):
 
             return key
     else:
-        with shelve.open("../../accounts", writeback=True) as db:
+        with shelve.open(accounts, writeback=True) as db:
             if account not in db:
                 raise no_acct
             elif name not in db[account]:

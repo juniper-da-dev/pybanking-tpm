@@ -6,8 +6,8 @@ from typing import Optional
 from argon2 import PasswordHasher
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-from crypto.exceptions import incorrect_pin, missing_pin
-from core import get_master_key
+from .exceptions import incorrect_pin, missing_pin
+from ..core import get_master_key
 
 ph = PasswordHasher()
 
