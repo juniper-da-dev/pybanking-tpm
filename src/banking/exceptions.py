@@ -7,3 +7,6 @@ class no_key(Exception):
 
 class insufficient_funds(Exception):
     pass
+
+class invalid_amount(Exception):
+    pass
