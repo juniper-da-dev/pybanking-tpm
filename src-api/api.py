@@ -1,4 +1,5 @@
 import sys
+import threading
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from starlette.requests import Request
@@ -27,6 +28,12 @@ class Login(BaseModel):
 
 app = FastAPI()
 ph = PasswordHasher()
+account_lock = {}
+
+def get_account_lock(account_num: str):
+    if account_num not in account_lock:
+        account_lock[account_num] = threading.Lock()
+    return account_lock[account_num]
 
 def generate_token(account_number, pin):
     try:
@@ -84,39 +91,45 @@ def login(pin: Login, account_number: str):
 def Deposit(amount: int, request: Request, pin: Login):
     pin = str(pin.pin)
     account_number = request.state.account_number
-    try:
-        new_bal = deposit(amount, account_number, pin)
-    except incorrect_pin:
-        raise HTTPException(status_code=403, detail="Incorrect PIN")
-    except no_acct:
-        raise HTTPException(status_code=404, detail="Account not found")
-    except invalid_amount:
-        raise HTTPException(status_code=400, detail="Invalid amount")
 
-    return {
-        "status": "ok",
-        "new_balance": new_bal
-    }
+    lock = get_account_lock(account_number)
+    with lock:
+        try:
+            new_bal = deposit(amount, account_number, pin)
+        except incorrect_pin:
+            raise HTTPException(status_code=403, detail="Incorrect PIN")
+        except no_acct:
+            raise HTTPException(status_code=404, detail="Account not found")
+        except invalid_amount:
+            raise HTTPException(status_code=400, detail="Invalid amount")
+
+        return {
+            "status": "ok",
+            "new_balance": new_bal
+        }
 
 @app.post("/withdraw")
 def Withdraw(amount: int, request: Request, pin: Login):
     pin = str(pin.pin)
     account_number = request.state.account_number
-    try:
-        new_bal = withdraw(amount, account_number, pin)
-    except incorrect_pin:
-        raise HTTPException(status_code=403, detail="Incorrect PIN")
-    except insufficient_funds:
-        raise HTTPException(status_code=409, detail="Insufficient funds")
-    except no_acct:
-        raise HTTPException(status_code=404, detail="Account not found")
-    except invalid_amount:
-        raise HTTPException(status_code=400, detail="Invalid amount")
 
-    return {
-        "status": "ok",
-        "new_balance": new_bal
-    }
+    lock = get_account_lock(account_number)
+    with lock:
+        try:
+            new_bal = withdraw(amount, account_number, pin)
+        except incorrect_pin:
+            raise HTTPException(status_code=403, detail="Incorrect PIN")
+        except insufficient_funds:
+            raise HTTPException(status_code=409, detail="Insufficient funds")
+        except no_acct:
+            raise HTTPException(status_code=404, detail="Account not found")
+        except invalid_amount:
+            raise HTTPException(status_code=400, detail="Invalid amount")
+
+        return {
+            "status": "ok",
+            "new_balance": new_bal
+        }
 
 @app.get("/health")
 def health():

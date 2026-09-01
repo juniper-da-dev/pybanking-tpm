@@ -6,6 +6,7 @@ from typing import Optional
 from argon2 import PasswordHasher
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
 from .exceptions import incorrect_pin, missing_pin
 from ..core import get_master_key
 
@@ -36,7 +37,7 @@ def encrypt(data, pin, nopin=False):
 
 
 def decrypt(data, pin: Optional[str] = None):
-    if data[:2] == "NOPIN-":
+    if data[:6] == "NOPIN-":
         master_key = get_master_key()
 
         data = data[6:]
@@ -51,26 +52,23 @@ def decrypt(data, pin: Optional[str] = None):
             raise incorrect_pin
 
         return str(unencrypted_text)
-    elif data[:6] != "NOPIN-" and not pin:
-        raise missing_pin
     else:
-        master_key = get_master_key()
-        hpin = hashlib.sha256(pin.encode()).hexdigest()
-
-        ckey = master_key + hpin.encode()
-        dkey = hashlib.sha256(ckey).digest()
-
-        data = base64.b64decode(data)
-        nonce = data[:12]
-        encrypted_data = data[12:]
-
         try:
+            master_key = get_master_key()
+            hpin = hashlib.sha256(pin.encode()).hexdigest()
+            ckey = master_key + hpin.encode()
+            dkey = hashlib.sha256(ckey).digest()
+            data = base64.b64decode(data)
+
+            nonce = data[:12]
+            encrypted_data = data[12:]
+
             cipher = AESGCM(dkey)
-            unencrypted_text = cipher.decrypt(nonce, encrypted_data, None).decode()
+            decrypted_text = cipher.decrypt(nonce, encrypted_data, None).decode()
+
+            return str(decrypted_text)
         except InvalidTag:
             raise incorrect_pin
-
-        return str(unencrypted_text)
 
 
 

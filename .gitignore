@@ -1,6 +1,9 @@
 # Local data
 /accounts
 
+# Personal reference notes, not part of the app
+/reference-notes/
+
 # Byte-compiled / cache
 __pycache__/
 *.py[cod]
