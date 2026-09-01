@@ -28,12 +28,14 @@ class Login(BaseModel):
 
 app = FastAPI()
 ph = PasswordHasher()
+lock_guard = threading.Lock()
 account_lock = {}
 
 def get_account_lock(account_num: str):
-    if account_num not in account_lock:
-        account_lock[account_num] = threading.Lock()
-    return account_lock[account_num]
+    with lock_guard:
+        if account_num not in account_lock:
+            account_lock[account_num] = threading.Lock()
+        return account_lock[account_num]
 
 def generate_token(account_number, pin):
     try:
