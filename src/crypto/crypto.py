@@ -32,14 +32,14 @@ def encrypt(data, pin, nopin=False):
         cipher = AESGCM(master_key)
         ciphertext = cipher.encrypt(nonce, str(data).encode(), None)
 
-        return "NP" + base64.b64encode(nonce + ciphertext).decode()
+        return "NOPIN-" + base64.b64encode(nonce + ciphertext).decode()
 
 
 def decrypt(data, pin: Optional[str] = None):
-    if data[:2] == "NP":
+    if data[:2] == "NOPIN-":
         master_key = get_master_key()
 
-        data = data[2:]
+        data = data[6:]
         data = base64.b64decode(data)
         nonce = data[:12]
         encrypted_data = data[12:]
@@ -51,7 +51,7 @@ def decrypt(data, pin: Optional[str] = None):
             raise incorrect_pin
 
         return str(unencrypted_text)
-    elif data[:2] != "NP" and not pin:
+    elif data[:6] != "NOPIN-" and not pin:
         raise missing_pin
     else:
         master_key = get_master_key()
